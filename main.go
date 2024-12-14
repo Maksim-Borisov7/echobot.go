@@ -6,14 +6,19 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"mime/multipart"
 	"net/http"
+	"os"
 	"strconv"
 )
 
+const (
+	botToken = "8001922451:AAGfXYpu1tUhGXNz_jMmchfLs7pDTge5R-Q"
+	botApi   = "https://api.telegram.org/bot"
+	botUrl   = botApi + botToken
+)
+
 func main() {
-	botToken := "8001922451:AAGfXYpu1tUhGXNz_jMmchfLs7pDTge5R-Q"
-	botApi := "https://api.telegram.org/bot"
-	botUrl := botApi + botToken
 	offset := 0
 	for {
 		updates, err := getUpdates(botUrl, offset)
@@ -21,7 +26,6 @@ func main() {
 			log.Println(err)
 		}
 		for _, update := range updates {
-			fmt.Println(update)
 			err = respond(botUrl, update)
 			offset = update.UpdateId + 1
 		}
@@ -36,7 +40,6 @@ func getUpdates(botUrl string, offset int) ([]Update, error) {
 	}
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
-	fmt.Println(string(body))
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +48,6 @@ func getUpdates(botUrl string, offset int) ([]Update, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(restResponse.Result)
 	return restResponse.Result, nil
 }
 
@@ -58,9 +60,95 @@ func respond(botUrl string, update Update) error {
 	if err != nil {
 		return err
 	}
-	_, err = http.Post(botUrl, "application/json", bytes.NewBuffer(buf))
+	if botMessage.Text == "/get_photo_dog" {
+		get_photo_dogs()
+		sendPhoto(int64(update.Message.Chat.ChatId), "C:\\Users\\maxva\\GolandProjects\\echobot\\img.jpg")
+		return nil
+	}
+	_, err = http.Post(botUrl+"/sendMessage", "application/json", bytes.NewBuffer(buf))
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+type Jpg struct {
+	Message string `json:"message"`
+}
+
+func get_photo_dogs() {
+	response, err := http.Get("https://dog.ceo/api/breeds/image/random")
+	if err != nil {
+		fmt.Println("Error:", err)
+	}
+	defer response.Body.Close()
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		fmt.Println("Не удалось прочитать файл", err)
+	}
+	str := ""
+	for _, v := range body {
+		if string(v) == "\\" {
+			continue
+		} else {
+			str += string(v)
+		}
+	}
+	var jpg Jpg
+	err = json.Unmarshal([]byte(str), &jpg)
+	if err != nil {
+		fmt.Println("Error:", err)
+	}
+	response2, err := http.Get(jpg.Message)
+	if err != nil {
+		fmt.Println("Не удалость сделать запрос", err)
+	}
+	outFile, err := os.Create("img.jpg")
+	if err != nil {
+		fmt.Println("Не удалось создать файл", err)
+	}
+	defer outFile.Close()
+	_, err = io.Copy(outFile, response2.Body)
+	if err != nil {
+		fmt.Println("Error:", err)
+	}
+}
+
+func sendPhoto(chatID int64, photoPath string) {
+	file, err := os.Open(photoPath)
+	if err != nil {
+		fmt.Println("Error opening photo file:", err)
+		return
+	}
+	defer file.Close()
+
+	var b bytes.Buffer
+	writer := multipart.NewWriter(&b)
+	part, err := writer.CreateFormFile("photo", file.Name()) // Здесь мы указываем имя файла
+	if err != nil {
+		fmt.Println("Error creating form file:", err)
+		return
+	}
+
+	_, err = io.Copy(part, file)
+	if err != nil {
+		fmt.Println("Error copying file contents:", err)
+		return
+	}
+	writer.Close()
+
+	resp, err := http.Post(botUrl+"/sendPhoto?chat_id="+fmt.Sprint(chatID), writer.FormDataContentType(), &b)
+
+	if err != nil {
+		fmt.Println("Error sending photo:", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("Error reading response body:", err)
+		return
+	}
+	fmt.Println("Photo sent, response:", string(body))
 }
