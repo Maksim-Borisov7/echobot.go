@@ -64,6 +64,9 @@ func respond(botUrl string, update Update) error {
 		get_photo_dogs()
 		sendPhoto(int64(update.Message.Chat.ChatId), "C:\\Users\\maxva\\GolandProjects\\echobot\\img.jpg")
 		return nil
+	} else if botMessage.Text == "/get_weather_forecast" {
+		get_weather_forecast(int64(botMessage.ChatId))
+		return nil
 	}
 	_, err = http.Post(botUrl+"/sendMessage", "application/json", bytes.NewBuffer(buf))
 	if err != nil {
@@ -121,7 +124,6 @@ func sendPhoto(chatID int64, photoPath string) {
 		return
 	}
 	defer file.Close()
-
 	var b bytes.Buffer
 	writer := multipart.NewWriter(&b)
 	part, err := writer.CreateFormFile("photo", file.Name()) // Здесь мы указываем имя файла
@@ -129,26 +131,50 @@ func sendPhoto(chatID int64, photoPath string) {
 		fmt.Println("Error creating form file:", err)
 		return
 	}
-
 	_, err = io.Copy(part, file)
 	if err != nil {
 		fmt.Println("Error copying file contents:", err)
 		return
 	}
 	writer.Close()
-
 	resp, err := http.Post(botUrl+"/sendPhoto?chat_id="+fmt.Sprint(chatID), writer.FormDataContentType(), &b)
-
 	if err != nil {
 		fmt.Println("Error sending photo:", err)
 		return
 	}
 	defer resp.Body.Close()
-
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println("Error reading response body:", err)
 		return
 	}
 	fmt.Println("Photo sent, response:", string(body))
+}
+
+func get_weather_forecast(chatid int64) {
+	API := "https://api.open-meteo.com/v1/forecast?latitude=55.7656&longitude=49.2559&current=temperature_2m&timezone=auto&forecast_days=1"
+	var botMessage BotMessage
+	botMessage.ChatId = int(chatid)
+	response, err := http.Get(API)
+	if err != nil {
+		fmt.Println("Ошибка GET-запроса", err)
+	}
+	defer response.Body.Close()
+	body, _ := io.ReadAll(response.Body)
+	var forecast Forecast
+	err = json.Unmarshal(body, &forecast)
+	if err != nil {
+		fmt.Println("Error Unmarshal", err)
+	}
+	str := fmt.Sprintf("Текущая погода %.1f%s", forecast.Current.Temperature, forecast.CurrentUnits.Temperature)
+	botMessage.Text = str
+	buf, err := json.Marshal(botMessage)
+	if err != nil {
+		fmt.Println("Error Marshal", err)
+	}
+	_, err = http.Post(botUrl+"/sendMessage", "application/json", bytes.NewBuffer(buf))
+	if err != nil {
+		fmt.Println("Error POST", err)
+	}
+	fmt.Println("Weather shown, good job")
 }

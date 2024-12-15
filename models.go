@@ -1,5 +1,6 @@
 package main
 
+// echobot
 type Update struct {
 	UpdateId int     `json:"update_id"`
 	Message  Message `json:"message"`
@@ -17,4 +18,16 @@ type RestResponse struct {
 type BotMessage struct {
 	ChatId int    `json:"chat_id"`
 	Text   string `json:"text"`
+}
+
+// forecast
+type Forecast struct {
+	Latitude     float64 `json:"latitude"`
+	Longitude    float64 `json:"longitude"`
+	CurrentUnits struct {
+		Temperature string `json:"temperature_2m"`
+	} `json:"current_units"`
+	Current struct {
+		Temperature float64 `json:"temperature_2m"`
+	} `json:"current"`
 }
