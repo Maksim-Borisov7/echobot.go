@@ -152,7 +152,7 @@ func sendPhoto(chatID int64, photoPath string) {
 }
 
 func get_weather_forecast(chatid int64) {
-	API := "https://api.open-meteo.com/v1/forecast?latitude=55.7656&longitude=49.2559&current=temperature_2m&timezone=auto&forecast_days=1"
+	API := "https://api.open-meteo.com/v1/forecast?latitude=54.7261409&longitude=55.947499&current=temperature_2m&timezone=auto&forecast_days=1"
 	var botMessage BotMessage
 	botMessage.ChatId = int(chatid)
 	response, err := http.Get(API)
