@@ -18,7 +18,7 @@ func sendPhoto(chatID int64, photoPath string) {
 	defer file.Close()
 	var b bytes.Buffer
 	writer := multipart.NewWriter(&b)
-	part, err := writer.CreateFormFile("photo", file.Name()) // Здесь мы указываем имя файла
+	part, err := writer.CreateFormFile("photo", file.Name())
 	if err != nil {
 		fmt.Println("Error creating form file:", err)
 		return
