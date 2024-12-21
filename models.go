@@ -20,6 +20,11 @@ type BotMessage struct {
 	Text   string `json:"text"`
 }
 
+// dogs
+type Jpg struct {
+	Message string `json:"message"`
+}
+
 // forecast
 type Forecast struct {
 	Latitude     float64 `json:"latitude"`
